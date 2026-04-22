@@ -36,30 +36,30 @@ jobs:
           docker build -t ${{ env.CONTAINER_REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.IMAGE_NAME }}:latest .
           docker push ${{ env.CONTAINER_REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.IMAGE_NAME }}:latest
 
-          deploy:
-            needs: docker_build
-            runs-on: ubuntu-latest
-            steps:
-              - name: Deploy to EC2 over SSH
-                uses: appleboy/ssh-action@v1.2.0
-                with:
-                  host:     ${{ secrets.EC2_HOST }}
-                  username: ${{ secrets.EC2_USER }}
-                  key:      ${{ secrets.EC2_SSH_KEY }}
-                  port:     22
-                  envs: CONTAINER_REGISTRY,IMAGE_NAME,IMAGE_OWNER,CONTAINER_NAME,HOST_PORT,CONTAINER_PORT
-                  script: |
-                    set -euo pipefail
-          
-                    IMAGE="$CONTAINER_REGISTRY/$IMAGE_OWNER/$IMAGE_NAME:latest"
-          
-                    docker pull  "$IMAGE"
-                    docker stop  "$CONTAINER_NAME" 2>/dev/null || true
-                    docker rm    "$CONTAINER_NAME" 2>/dev/null || true
-                    docker run -d \
-                      --name "$CONTAINER_NAME" \
-                      --restart unless-stopped \
-                      -p ${HOST_PORT}:${CONTAINER_PORT} \
-                      "$IMAGE"
-          
-                    docker image prune -f
+  deploy:
+  needs: docker_build
+  runs-on: ubuntu-latest
+  steps:
+    - name: Deploy to EC2 over SSH
+      uses: appleboy/ssh-action@v1.2.0
+      with:
+        host:     ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key:      ${{ secrets.EC2_SSH_KEY }}
+        port:     22
+        envs: CONTAINER_REGISTRY,IMAGE_NAME,IMAGE_OWNER,CONTAINER_NAME,HOST_PORT,CONTAINER_PORT
+        script: |
+          set -euo pipefail
+
+          IMAGE="$CONTAINER_REGISTRY/$IMAGE_OWNER/$IMAGE_NAME:latest"
+
+          docker pull  "$IMAGE"
+          docker stop  "$CONTAINER_NAME" 2>/dev/null || true
+          docker rm    "$CONTAINER_NAME" 2>/dev/null || true
+          docker run -d \
+            --name "$CONTAINER_NAME" \
+            --restart unless-stopped \
+            -p ${HOST_PORT}:${CONTAINER_PORT} \
+            "$IMAGE"
+
+          docker image prune -f
