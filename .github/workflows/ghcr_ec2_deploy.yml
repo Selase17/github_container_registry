@@ -70,3 +70,13 @@ jobs:
 
             # Free disk from old images
             docker image prune -f
+
+            if ! command -v docker >/dev/null 2>&1; then
+                if command -v apt-get >/dev/null; then
+                    sudo apt-get update && sudo apt-get install -y docker.io
+                else
+                    sudo yum install -y docker || sudo dnf install -y docker
+                fi
+                sudo systemctl enable --now docker
+                sudo usermod -aG docker "$USER"
+            fi
